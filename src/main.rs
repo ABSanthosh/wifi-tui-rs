@@ -1,47 +1,96 @@
-use std::io;
-use crossterm::event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode};
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
-use ratatui::prelude::*;
-use ratatui::backend::CrosstermBackend;
-use wifi_tui::app::App;
-use wifi_tui::ui::draw_ui;
+use std::collections::HashMap;
+use std::process::Command;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    crossterm::execute!(
-        stdout,
-        EnterAlternateScreen,
-        EnableMouseCapture
-    )?;
-    let backend: CrosstermBackend<_> = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
+pub struct WiFiNetwork {
+    pub ssid: String,
+    pub strength: i32,
+    pub security: String,
+    pub connected: bool,
+    pub uuid: String,
+}
 
-    let mut app = App::new();
+struct NetworkManager {
+    networks: HashMap<String, WiFiNetwork>,
+}
 
-    loop {
-        terminal.draw(|f| draw_ui(f, &app))?;
-
-        if event::poll(std::time::Duration::from_millis(250))? {
-            if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') => break,
-                    KeyCode::Down => app.next(),
-                    KeyCode::Up => app.previous(),
-                    _ => {}
-                }
-            }
+impl NetworkManager {
+    pub fn new() -> Self {
+        NetworkManager {
+            networks: HashMap::new(),
         }
     }
 
-    disable_raw_mode()?;
-    crossterm::execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
-    terminal.show_cursor()?;
+    // Get the list of visible Wi-Fi networks
+    pub async fn get(&mut self) {
+        // CLI equivalent: nmcli -t -f SSID,SIGNAL,SECURITY,ACTIVE,SSID-HEX device wifi list
+        let output = Command::new("nmcli")
+            .args(&[
+                "-t",
+                "-f",
+                "SSID,SIGNAL,SECURITY,ACTIVE,SSID-HEX",
+                "device",
+                "wifi",
+                "list",
+            ])
+            .output()
+            .expect("Failed to execute nmcli");
 
-    Ok(())
+        if output.status.success() {
+            let result = String::from_utf8_lossy(&output.stdout);
+            for line in result.lines() {
+                let parts: Vec<&str> = line.split(':').collect();
+                if parts.len() >= 3 && !parts[0].is_empty() {
+                    self.networks.insert(
+                        parts[0].to_string().trim().to_string(),
+                        WiFiNetwork {
+                            ssid: parts[0].to_string().trim().to_string(),
+                            strength: parts[1].parse().unwrap_or(0),
+                            security: parts[2].to_string(),
+                            connected: parts[3] == "yes",
+                            uuid: parts[4].to_string(),
+                        },
+                    );
+                }
+            }
+        } else {
+            eprintln!("Error: {}", String::from_utf8_lossy(&output.stderr));
+        }
+    }
+
+    // // Connect to a Wi-Fi network
+    pub async fn connect(&self, ssid: &str, password: &str) {
+        // CLI equivalent: nmcli dev wifi connect <SSID> password <PASSWORD>
+        let output = Command::new("nmcli")
+            .args(&["dev", "wifi", "connect", ssid, "password", password])
+            .output()
+            .expect("Failed to execute nmcli");
+
+        if output.status.success() {
+            println!("Connected to {}", ssid);
+        } else {
+            eprintln!("Error: {}", String::from_utf8_lossy(&output.stderr));
+        }
+    }
+
+    // // Disconnect from a Wi-Fi network
+    // pub async fn disconnect(&self, ssid: &str) {}
+}
+
+#[tokio::main]
+async fn main() {
+    let ssid = "Recurrence";
+    let password = "asdfghjkl";
+
+    // let ssid = "MP-312";
+    // let password = "tuntunmausi";
+
+    let mut nm = NetworkManager::new();
+    nm.get().await;
+    for (ssid, network) in &nm.networks {
+        println!(
+            "SSID: |{}|, Strength: {}, Security: {}, Connected: {}, UUID: {}",
+            ssid, network.strength, network.security, network.connected, network.uuid
+        );
+    }
+    nm.connect(ssid, password).await;
 }
