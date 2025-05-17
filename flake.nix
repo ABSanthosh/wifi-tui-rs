@@ -12,6 +12,10 @@
     in
     {
       devShells.x86_64-linux.default = pkgs.mkShell {
+        packages = with pkgs; [
+          iwd
+        ];
+
         env.LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
           pkgs.zlib
           pkgs.glibc
