@@ -2,7 +2,7 @@ use color_eyre::eyre::{Ok, Result};
 use ratatui::style::{Color, Style};
 use ratatui::symbols;
 use ratatui::text::Line;
-use ratatui::widgets::{Padding, Wrap};
+use ratatui::widgets::{List, ListState, Padding, Wrap};
 use ratatui::{
     buffer::Buffer,
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
@@ -12,9 +12,27 @@ use ratatui::{
 };
 use strum::{Display, EnumIter, FromRepr, IntoEnumIterator};
 
+// use crate:
+
+pub struct Network {
+    ssid: String,
+    signal_strength: u8,
+    is_known: bool,
+    ip_address: Option<String>,
+    is_connected: bool,
+}
+
+struct NetworkList {
+  items: Vec<Network>,
+  state: ListState,
+}
+
 pub struct App {
     state: AppState,
     selected_tab: SelectedTab,
+    selected_network: Option<Network>,
+    known_networks: NetworkList,
+    unknown_networks: NetworkList,
 }
 
 #[derive(Default, Clone, Copy, Display, FromRepr, EnumIter)]
@@ -54,6 +72,52 @@ impl App {
         App {
             state: AppState::Running,
             selected_tab: SelectedTab::default(),
+            known_networks: vec![
+                Network {
+                    ssid: "Home WiFi".to_string(),
+                    signal_strength: 75,
+                    is_known: true,
+                    ip_address: None,
+                    is_connected: true,
+                },
+                Network {
+                    ssid: "Office WiFi".to_string(),
+                    signal_strength: 50,
+                    is_known: true,
+                    ip_address: None,
+                    is_connected: false,
+                },
+                Network {
+                    ssid: "Coffee Shop WiFi".to_string(),
+                    signal_strength: 30,
+                    is_known: true,
+                    ip_address: None,
+                    is_connected: false,
+                },
+                Network {
+                    ssid: "Public WiFi".to_string(),
+                    signal_strength: 20,
+                    is_known: true,
+                    ip_address: None,
+                    is_connected: false,
+                },
+            ],
+            unknown_networks: vec![
+                Network {
+                    ssid: "Unknown WiFi 1".to_string(),
+                    signal_strength: 80,
+                    is_known: false,
+                    ip_address: None,
+                    is_connected: false,
+                },
+                Network {
+                    ssid: "Unknown WiFi 2".to_string(),
+                    signal_strength: 60,
+                    is_known: false,
+                    ip_address: None,
+                    is_connected: false,
+                },
+            ],
         }
     }
 
@@ -140,9 +204,7 @@ impl Widget for &App {
 
 impl SelectedTab {
     fn render_known(self, area: Rect, buf: &mut Buffer) {
-        Paragraph::new("List of Known wifi networks")
-            .block(self.container())
-            .render(area, buf);
+        
     }
 
     fn render_unknown(self, area: Rect, buf: &mut Buffer) {
