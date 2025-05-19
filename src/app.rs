@@ -1,8 +1,8 @@
-use crate::list::Network;
+use crate::ui::list::Network;
 use crate::ui::tab::SelectedTab;
 use color_eyre::eyre::{Ok, Result};
 use ratatui::style::{Color, Style};
-use ratatui::symbols;
+
 use ratatui::text::Line;
 use ratatui::widgets::{Padding, Wrap};
 use ratatui::{
@@ -146,8 +146,6 @@ impl App {
             .block(tab_container)
             .render(area, buf);
     }
-
-    
 }
 
 // This is where the whole app is rendered

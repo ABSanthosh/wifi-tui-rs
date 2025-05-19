@@ -1,6 +1,5 @@
 use color_eyre::eyre::Result;
 
-mod list;
 mod app;
 mod ui;
 
