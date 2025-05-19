@@ -48,6 +48,7 @@ impl App {
                     is_known: true,
                     ip_address: None,
                     is_connected: true,
+                    security: "WPA2".to_string(),
                     style: Style::default(),
                 },
                 Network {
@@ -56,6 +57,7 @@ impl App {
                     is_known: true,
                     ip_address: None,
                     is_connected: false,
+                    security: "WPA2".to_string(),
                     style: Style::default(),
                 },
                 Network {
@@ -64,6 +66,7 @@ impl App {
                     is_known: true,
                     ip_address: None,
                     is_connected: false,
+                    security: "WPA2".to_string(),
                     style: Style::default(),
                 },
                 Network {
@@ -72,6 +75,7 @@ impl App {
                     is_known: true,
                     ip_address: None,
                     is_connected: false,
+                    security: "WPA2".to_string(),
                     style: Style::default(),
                 },
             ],
@@ -82,6 +86,7 @@ impl App {
                     is_known: false,
                     ip_address: None,
                     is_connected: false,
+                    security: "WPA2".to_string(),
                     style: Style::default(),
                 },
                 Network {
@@ -90,6 +95,7 @@ impl App {
                     is_known: false,
                     ip_address: None,
                     is_connected: false,
+                    security: "WPA2".to_string(),
                     style: Style::default(),
                 },
             ],
@@ -103,7 +109,7 @@ impl App {
             terminal
                 .draw(|frame| frame.render_stateful_widget(&self, frame.area(), &mut list_state))?;
 
-            self.handle_keys()?;
+            self.handle_keys(&mut list_state)?;
         }
 
         // while self.state == AppState::Running {
@@ -113,14 +119,14 @@ impl App {
         Ok(())
     }
 
-    fn handle_keys(&mut self) -> Result<()> {
+    fn handle_keys(&mut self, state: &mut AppListState) -> Result<()> {
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
                 match key.code {
                     KeyCode::Char('l') | KeyCode::Right => self.next_tab(),
                     KeyCode::Char('h') | KeyCode::Left => self.previous_tab(),
-                    KeyCode::Char('j') | KeyCode::Down => self.selected_network.next(),
-                    KeyCode::Char('k') | KeyCode::Up => self.selected_network.previous(),
+                    KeyCode::Char('j') | KeyCode::Down => state.list_state.next(),
+                    KeyCode::Char('k') | KeyCode::Up => state.list_state.previous(),
                     KeyCode::Char('q') | KeyCode::Esc => self.quit(),
                     _ => {}
                 }

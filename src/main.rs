@@ -1,6 +1,5 @@
 use color_eyre::eyre::Result;
 
-mod terminal;
 mod app;
 mod ui;
 
