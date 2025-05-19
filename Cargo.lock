@@ -638,6 +638,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tui-widget-list"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a417c8ac65119a0e5b8627d0ce492731b95affb29ec8602d9e72646bda5ecf6"
+dependencies = [
+ "ratatui",
+]
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -691,6 +700,7 @@ dependencies = [
  "color-eyre",
  "ratatui",
  "strum",
+ "tui-widget-list",
 ]
 
 [[package]]
