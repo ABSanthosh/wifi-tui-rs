@@ -4,7 +4,7 @@ use color_eyre::eyre::{Ok, Result};
 use ratatui::style::{Color, Style};
 
 use ratatui::text::Line;
-use ratatui::widgets::{Padding, Wrap};
+use ratatui::widgets::{Padding, StatefulWidget, Wrap};
 use ratatui::{
     buffer::Buffer,
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
@@ -13,10 +13,12 @@ use ratatui::{
     DefaultTerminal,
 };
 use strum::IntoEnumIterator;
+use tui_widget_list::ListState;
 
 pub struct App {
     state: AppState,
     selected_tab: SelectedTab,
+    selected_network: ListState,
     known_networks: Vec<Network>,
     unknown_networks: Vec<Network>,
 }
@@ -28,11 +30,17 @@ enum AppState {
     Quitting,
 }
 
+#[derive(Default)]
+pub struct AppListState {
+    pub list_state: ListState,
+}
+
 impl App {
     pub fn new() -> App {
         App {
             state: AppState::Running,
             selected_tab: SelectedTab::default(),
+            selected_network: ListState::default(),
             known_networks: vec![
                 Network {
                     ssid: "Home WiFi".to_string(),
@@ -40,6 +48,7 @@ impl App {
                     is_known: true,
                     ip_address: None,
                     is_connected: true,
+                    style: Style::default(),
                 },
                 Network {
                     ssid: "Office WiFi".to_string(),
@@ -47,6 +56,7 @@ impl App {
                     is_known: true,
                     ip_address: None,
                     is_connected: false,
+                    style: Style::default(),
                 },
                 Network {
                     ssid: "Coffee Shop WiFi".to_string(),
@@ -54,6 +64,7 @@ impl App {
                     is_known: true,
                     ip_address: None,
                     is_connected: false,
+                    style: Style::default(),
                 },
                 Network {
                     ssid: "Public WiFi".to_string(),
@@ -61,6 +72,7 @@ impl App {
                     is_known: true,
                     ip_address: None,
                     is_connected: false,
+                    style: Style::default(),
                 },
             ],
             unknown_networks: vec![
@@ -70,6 +82,7 @@ impl App {
                     is_known: false,
                     ip_address: None,
                     is_connected: false,
+                    style: Style::default(),
                 },
                 Network {
                     ssid: "Unknown WiFi 2".to_string(),
@@ -77,16 +90,26 @@ impl App {
                     is_known: false,
                     ip_address: None,
                     is_connected: false,
+                    style: Style::default(),
                 },
             ],
         }
     }
 
     pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
+        let mut list_state = AppListState::default();
+
         while self.state == AppState::Running {
-            terminal.draw(|frame| frame.render_widget(&self, frame.area()))?;
+            terminal
+                .draw(|frame| frame.render_stateful_widget(&self, frame.area(), &mut list_state))?;
+
             self.handle_keys()?;
         }
+
+        // while self.state == AppState::Running {
+        //     terminal.draw(|frame| frame.render_widget(&self, frame.area()))?;
+        //     self.handle_keys()?;
+        // }
         Ok(())
     }
 
@@ -96,8 +119,8 @@ impl App {
                 match key.code {
                     KeyCode::Char('l') | KeyCode::Right => self.next_tab(),
                     KeyCode::Char('h') | KeyCode::Left => self.previous_tab(),
-                    KeyCode::Char('j') | KeyCode::Down => {} // TODO: Implement list navigation
-                    KeyCode::Char('k') | KeyCode::Up => {}   // TODO: Implement list navigation
+                    KeyCode::Char('j') | KeyCode::Down => self.selected_network.next(),
+                    KeyCode::Char('k') | KeyCode::Up => self.selected_network.previous(),
                     KeyCode::Char('q') | KeyCode::Esc => self.quit(),
                     _ => {}
                 }
@@ -149,8 +172,9 @@ impl App {
 }
 
 // This is where the whole app is rendered
-impl Widget for &App {
-    fn render(self, area: Rect, buf: &mut Buffer) {
+impl StatefulWidget for &App {
+    type State = AppListState;
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         use Constraint::{Length, Min};
 
         let vertical = Layout::vertical([
@@ -161,9 +185,8 @@ impl Widget for &App {
         let [header_area, inner_area, footer_area] = vertical.areas(area);
 
         self.render_tabs(header_area, buf);
-        // self.selected_tab.render(inner_area, buf);
         self.render_footer(footer_area, buf);
-        // self.render_title(header_area, buf);
+
         self.render_list(
             inner_area,
             buf,
@@ -171,6 +194,7 @@ impl Widget for &App {
                 SelectedTab::Known => &self.known_networks,
                 SelectedTab::Unknown => &self.unknown_networks,
             },
+            &mut state.list_state,
         );
     }
 }
