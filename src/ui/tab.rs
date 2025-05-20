@@ -6,28 +6,50 @@ use ratatui::{
 };
 use strum::{Display, EnumIter, FromRepr};
 
-#[derive(Default, Clone, Copy, Display, FromRepr, EnumIter)]
+use crate::app::GeneralState;
+
+#[derive(Default, Clone, Copy, Display, FromRepr, EnumIter, PartialEq)]
 pub enum SelectedTab {
     #[default]
     #[strum(to_string = "known")]
     Known,
     #[strum(to_string = "unknown")]
     Unknown,
+    #[strum(to_string = "radio")]
+    Radio,
 }
 
 impl SelectedTab {
-    /// Get the previous tab, if there is no previous tab return the current tab.
-    pub fn previous(self) -> Self {
+    // Get the previous tab, if there is no previous tab return the current tab.
+    pub fn previous(self, state: &mut GeneralState) -> Self {
         let current_index: usize = self as usize;
         let previous_index = current_index.saturating_sub(1);
+
+        if current_index != previous_index {
+            state.list_state.select(Some(0));
+        }
+
         Self::from_repr(previous_index).unwrap_or(self)
     }
 
-    /// Get the next tab, if there is no next tab return the current tab.
-    pub fn next(self) -> Self {
+    // Get the next tab, if there is no next tab return the current tab.
+    pub fn next(self, state: &mut GeneralState) -> Self {
         let current_index = self as usize;
         let next_index = current_index.saturating_add(1);
+
+        // Check if the next index is out of bounds
+        Self::from_repr(next_index).map(|_| {
+            // If the next index is valid, select the first item in the list
+            state.list_state.select(Some(0));
+        });
+
         Self::from_repr(next_index).unwrap_or(self)
+    }
+
+    pub fn render_radio(self, area: Rect, buf: &mut Buffer) {
+        Paragraph::new("Radio")
+            .block(self._container())
+            .render(area, buf);
     }
 
     pub fn _render_known(self, area: Rect, buf: &mut Buffer) {
@@ -56,12 +78,3 @@ impl SelectedTab {
             .padding(Padding::horizontal(1))
     }
 }
-
-// impl Widget for SelectedTab {
-//     fn render(self, area: Rect, buf: &mut Buffer) {
-//         match self {
-//             SelectedTab::Known => self.render_known(area, buf),
-//             SelectedTab::Unknown => self.render_unknown(area, buf),
-//         }
-//     }
-// }
