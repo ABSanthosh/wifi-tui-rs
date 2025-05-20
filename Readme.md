@@ -22,7 +22,9 @@ That's about it. That's all the functionality I found myself using in the last 4
 
 <details>
 <summary>Click to expand</summary>
+
 - [ ] Add a throbber in the right corner of the tab box
+- [ ] Add inputs to enable/disable the radio like in nmtui
 - [x] only if the tab changes. not if its in the same tab after key press
 
 </details>
